@@ -1,0 +1,2129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Productivity Pro - Complete Activity Tracker</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4361ee;
+            --primary-dark: #3a56d4;
+            --secondary: #7209b7;
+            --success: #4cc9f0;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --gray: #6c757d;
+            --light-gray: #e9ecef;
+            --danger: #e63946;
+            --warning: #fca311;
+            --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: var(--dark);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: var(--card-shadow);
+            overflow: hidden;
+            transition: var(--transition);
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 20px 30px;
+            text-align: center;
+        }
+
+        .card-body {
+            padding: 30px;
+        }
+
+        .app-container {
+            display: none;
+            width: 100%;
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 450px;
+            margin: 50px auto;
+        }
+
+        .welcome-text {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .welcome-text h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .welcome-text p {
+            color: var(--gray);
+            font-size: 1.1rem;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid var(--light-gray);
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: var(--transition);
+        }
+
+        .form-control:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 14px 28px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            text-align: center;
+        }
+
+        .btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: var(--secondary);
+        }
+
+        .btn-secondary:hover {
+            background: #5a08a0;
+        }
+
+        .btn-success {
+            background: var(--success);
+        }
+
+        .btn-success:hover {
+            background: #3ab0d5;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+        }
+
+        .btn-danger:hover {
+            background: #c1121f;
+        }
+
+        .btn-warning {
+            background: var(--warning);
+        }
+
+        .btn-warning:hover {
+            background: #e69500;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 25px 0;
+        }
+
+        .divider::before, .divider::after {
+            content: "";
+            flex: 1;
+            border-bottom: 1px solid var(--light-gray);
+        }
+
+        .divider span {
+            padding: 0 15px;
+            color: var(--gray);
+            font-size: 0.9rem;
+        }
+
+        .tabs {
+            display: flex;
+            background: var(--light);
+            border-radius: 10px;
+            padding: 5px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: var(--transition);
+            font-weight: 600;
+            min-width: 120px;
+        }
+
+        .tab.active {
+            background: white;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            color: var(--primary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            text-align: center;
+        }
+
+        .stat-card h3 {
+            color: var(--gray);
+            font-size: 1rem;
+            margin-bottom: 10px;
+        }
+
+        .stat-card .value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .time-slots {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .time-slot {
+            background: var(--light);
+            border-radius: 12px;
+            padding: 20px;
+            transition: var(--transition);
+        }
+
+        .time-slot:hover {
+            background: #e2e6ea;
+        }
+
+        .time-slot-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .time-label {
+            font-weight: 700;
+            color: var(--primary);
+            font-size: 1.1rem;
+        }
+
+        .activity-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--light-gray);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: var(--transition);
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .activity-input:focus {
+            border-color: var(--primary);
+            outline: none;
+        }
+
+        .todo-section {
+            margin-top: 30px;
+        }
+
+        .todo-input {
+            display: flex;
+            margin-bottom: 20px;
+        }
+
+        .todo-input input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid var(--light-gray);
+            border-radius: 8px 0 0 8px;
+            font-size: 1rem;
+        }
+
+        .todo-input button {
+            border-radius: 0 8px 8px 0;
+            width: auto;
+            padding: 12px 20px;
+        }
+
+        .todo-list {
+            list-style: none;
+        }
+
+        .todo-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        .todo-item.completed {
+            opacity: 0.7;
+            text-decoration: line-through;
+        }
+
+        .todo-item input[type="checkbox"] {
+            margin-right: 15px;
+            transform: scale(1.2);
+        }
+
+        .todo-text {
+            flex: 1;
+        }
+
+        .todo-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .timer-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .timer-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            text-align: center;
+        }
+
+        .timer-display {
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+        }
+
+        .timer-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .timer-controls button {
+            width: auto;
+            padding: 10px 20px;
+        }
+
+        .subject-input {
+            display: flex;
+            margin-bottom: 20px;
+        }
+
+        .subject-input input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid var(--light-gray);
+            border-radius: 8px 0 0 8px;
+            font-size: 1rem;
+        }
+
+        .subject-input button {
+            border-radius: 0 8px 8px 0;
+            width: auto;
+            padding: 12px 20px;
+        }
+
+        .subject-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .subject-card {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            text-align: center;
+        }
+
+        .subject-card h3 {
+            margin-bottom: 10px;
+            color: var(--primary);
+        }
+
+        .subject-card .time {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--secondary);
+        }
+
+        .share-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: var(--light);
+            border-radius: 12px;
+        }
+
+        .share-code {
+            display: flex;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .share-code input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid var(--light-gray);
+            border-radius: 8px 0 0 8px;
+            font-size: 1rem;
+            min-width: 200px;
+        }
+
+        .share-code button {
+            border-radius: 0 8px 8px 0;
+            width: auto;
+            padding: 12px 20px;
+        }
+
+        .code-info {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: var(--gray);
+        }
+
+        .view-shared {
+            margin-top: 30px;
+        }
+
+        .shared-activities {
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .shared-day {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        .day-header {
+            font-weight: 700;
+            color: var(--secondary);
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--light-gray);
+        }
+
+        .user-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            flex-wrap: wrap;
+        }
+
+        .user-details {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.2rem;
+            margin-right: 15px;
+        }
+
+        .logout-btn {
+            width: auto;
+            padding: 10px 20px;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            z-index: 1000;
+            transform: translateX(150%);
+            transition: transform 0.3s ease;
+            max-width: 90%;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            border-left: 4px solid var(--success);
+        }
+
+        .notification.error {
+            border-left: 4px solid var(--danger);
+        }
+
+        .notification i {
+            margin-right: 10px;
+            font-size: 1.2rem;
+        }
+
+        .notification.success i {
+            color: var(--success);
+        }
+
+        .notification.error i {
+            color: var(--danger);
+        }
+
+        .history-section {
+            margin-top: 30px;
+        }
+
+        .date-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .date-selector input {
+            padding: 10px;
+            border: 2px solid var(--light-gray);
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .history-day {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        .history-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .history-stat {
+            text-align: center;
+            padding: 15px;
+            background: var(--light);
+            border-radius: 8px;
+        }
+
+        .history-stat h4 {
+            color: var(--gray);
+            margin-bottom: 5px;
+        }
+
+        .history-stat .value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Mobile-first responsive design */
+        @media (max-width: 576px) {
+            body {
+                padding: 10px;
+            }
+            
+            .card-body {
+                padding: 20px;
+            }
+            
+            .welcome-text h1 {
+                font-size: 2rem;
+            }
+            
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .tab {
+                margin-bottom: 5px;
+            }
+            
+            .time-slots {
+                grid-template-columns: 1fr;
+            }
+            
+            .user-info {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .logout-btn {
+                width: 100%;
+                margin-top: 10px;
+            }
+            
+            .share-code {
+                flex-direction: column;
+            }
+            
+            .share-code input {
+                border-radius: 8px;
+                margin-bottom: 10px;
+            }
+            
+            .share-code button {
+                border-radius: 8px;
+                width: 100%;
+            }
+            
+            .notification {
+                top: 10px;
+                right: 10px;
+                left: 10px;
+                max-width: calc(100% - 20px);
+            }
+            
+            .timer-display {
+                font-size: 2.5rem;
+            }
+            
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .date-selector {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .date-selector input, .date-selector button {
+                width: 100%;
+            }
+        }
+
+        @media (min-width: 577px) and (max-width: 768px) {
+            .time-slots {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .tabs {
+                flex-wrap: nowrap;
+            }
+            
+            .tab {
+                min-width: 0;
+            }
+            
+            .dashboard {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (min-width: 769px) and (max-width: 992px) {
+            .time-slots {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .dashboard {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (min-width: 993px) {
+            .time-slots {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            
+            .dashboard {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        /* Extra small devices */
+        @media (max-width: 380px) {
+            .card-header {
+                padding: 15px 20px;
+            }
+            
+            .card-body {
+                padding: 15px;
+            }
+            
+            .welcome-text h1 {
+                font-size: 1.8rem;
+            }
+            
+            .btn {
+                padding: 12px 20px;
+            }
+            
+            .user-details {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .avatar {
+                margin-right: 0;
+                margin-bottom: 10px;
+            }
+            
+            .timer-display {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Login Container -->
+        <div class="login-container card" id="loginContainer">
+            <div class="card-header">
+                <h2><i class="fas fa-chart-line"></i> Productivity Pro</h2>
+            </div>
+            <div class="card-body">
+                <div class="welcome-text">
+                    <h1>Track Your Daily Progress</h1>
+                    <p>Monitor activities, track study time, and boost productivity</p>
+                </div>
+                
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="loginEmail">Email</label>
+                        <input type="email" id="loginEmail" class="form-control" placeholder="Enter your email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Password</label>
+                        <input type="password" id="loginPassword" class="form-control" placeholder="Enter your password" required>
+                    </div>
+                    <button type="submit" class="btn" id="loginBtn">
+                        <span id="loginBtnText">Sign In</span>
+                    </button>
+                </form>
+                
+                <div class="divider">
+                    <span>OR</span>
+                </div>
+                
+                <form id="registerForm">
+                    <div class="form-group">
+                        <label for="registerName">Full Name</label>
+                        <input type="text" id="registerName" class="form-control" placeholder="Enter your full name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerEmail">Email</label>
+                        <input type="email" id="registerEmail" class="form-control" placeholder="Enter your email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerPassword">Password</label>
+                        <input type="password" id="registerPassword" class="form-control" placeholder="Create a password (min. 6 characters)" required>
+                    </div>
+                    <button type="submit" class="btn btn-secondary" id="registerBtn">
+                        <span id="registerBtnText">Create Account</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Main App Container -->
+        <div class="app-container card" id="appContainer">
+            <div class="user-info">
+                <div class="user-details">
+                    <div class="avatar" id="userAvatar">U</div>
+                    <div>
+                        <h3 id="userName">User Name</h3>
+                        <p id="userEmail">user@example.com</p>
+                    </div>
+                </div>
+                <button class="btn btn-danger logout-btn" id="logoutBtn">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+            
+            <div class="card-body">
+                <div class="dashboard">
+                    <div class="stat-card">
+                        <h3>Total Study Hours</h3>
+                        <div class="value" id="totalStudyHours">0h 0m</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Tasks Completed</h3>
+                        <div class="value" id="tasksCompleted">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Today's Focus</h3>
+                        <div class="value" id="todayFocus">0h 0m</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Productivity Score</h3>
+                        <div class="value" id="productivityScore">0%</div>
+                    </div>
+                </div>
+                
+                <div class="tabs">
+                    <div class="tab active" data-tab="track">Track Activities</div>
+                    <div class="tab" data-tab="todo">To-Do List</div>
+                    <div class="tab" data-tab="study">Study Tracker</div>
+                    <div class="tab" data-tab="history">History</div>
+                    <div class="tab" data-tab="share">Share Progress</div>
+                </div>
+                
+                <!-- Track Activities Tab -->
+                <div class="tab-content active" id="trackTab">
+                    <h2>Today's Activities (3-Hour Brackets)</h2>
+                    <p>Record your activities for different time slots throughout the day</p>
+                    
+                    <div class="time-slots" id="timeSlots">
+                        <!-- Time slots will be dynamically generated here -->
+                    </div>
+                    
+                    <button class="btn btn-success" id="saveActivities" style="margin-top: 20px;">
+                        <i class="fas fa-save"></i> Save Today's Activities
+                    </button>
+                </div>
+                
+                <!-- To-Do List Tab -->
+                <div class="tab-content" id="todoTab">
+                    <h2>To-Do List</h2>
+                    <p>Manage your daily tasks and track completion</p>
+                    
+                    <div class="todo-section">
+                        <div class="todo-input">
+                            <input type="text" id="todoInput" placeholder="Add a new task...">
+                            <button class="btn" id="addTodoBtn">Add Task</button>
+                        </div>
+                        
+                        <ul class="todo-list" id="todoList">
+                            <!-- To-do items will appear here -->
+                        </ul>
+                    </div>
+                </div>
+                
+                <!-- Study Tracker Tab -->
+                <div class="tab-content" id="studyTab">
+                    <h2>Study Tracker</h2>
+                    <p>Track study time by subject and use productivity timers</p>
+                    
+                    <div class="timer-section">
+                        <div class="timer-card">
+                            <h3><i class="fas fa-stopwatch"></i> Study Stopwatch</h3>
+                            <div class="timer-display" id="stopwatchDisplay">00:00:00</div>
+                            <div class="form-group">
+                                <select id="subjectSelect" class="form-control">
+                                    <option value="">Select a subject</option>
+                                    <option value="Mathematics">Mathematics</option>
+                                    <option value="Science">Science</option>
+                                    <option value="History">History</option>
+                                    <option value="Language">Language</option>
+                                    <option value="Programming">Programming</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            <div class="timer-controls">
+                                <button class="btn btn-success" id="startStopwatch">Start</button>
+                                <button class="btn btn-danger" id="stopStopwatch">Stop</button>
+                                <button class="btn btn-warning" id="resetStopwatch">Reset</button>
+                            </div>
+                        </div>
+                        
+                        <div class="timer-card">
+                            <h3><i class="fas fa-clock"></i> Pomodoro Timer</h3>
+                            <div class="timer-display" id="pomodoroDisplay">25:00</div>
+                            <div class="timer-controls">
+                                <button class="btn btn-success" id="startPomodoro">Start</button>
+                                <button class="btn btn-danger" id="pausePomodoro">Pause</button>
+                                <button class="btn btn-warning" id="resetPomodoro">Reset</button>
+                            </div>
+                            <div style="margin-top: 15px;">
+                                <span id="pomodoroStatus">Ready to focus!</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="subject-section" style="margin-top: 30px;">
+                        <h3>Study Time by Subject</h3>
+                        <div class="subject-input">
+                            <input type="text" id="subjectInput" placeholder="Add a new subject...">
+                            <button class="btn" id="addSubjectBtn">Add Subject</button>
+                        </div>
+                        
+                        <div class="subject-list" id="subjectList">
+                            <!-- Subject cards will appear here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- History Tab -->
+                <div class="tab-content" id="historyTab">
+                    <h2>Activity History</h2>
+                    <p>View your past activities, to-do lists, and study sessions</p>
+                    
+                    <div class="history-section">
+                        <div class="date-selector">
+                            <input type="date" id="historyDate" class="form-control">
+                            <button class="btn" id="loadHistoryBtn">Load Day</button>
+                            <button class="btn btn-secondary" id="prevDayBtn">Previous Day</button>
+                            <button class="btn btn-secondary" id="nextDayBtn">Next Day</button>
+                        </div>
+                        
+                        <div id="historyContent">
+                            <!-- History content will appear here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Share Progress Tab -->
+                <div class="tab-content" id="shareTab">
+                    <h2>Share Your Progress</h2>
+                    <p>Generate a shareable code to let others view your complete daily progress</p>
+                    
+                    <div class="share-section">
+                        <h3>Your Daily Share Code</h3>
+                        <p>This code remains the same for today and automatically refreshes tomorrow</p>
+                        
+                        <div class="share-code">
+                            <input type="text" id="shareCodeInput" readonly>
+                            <button class="btn" id="generateCodeBtn">Get Today's Code</button>
+                        </div>
+                        
+                        <div class="code-info" id="codeInfo">
+                            <!-- Code info will appear here -->
+                        </div>
+                        
+                        <div style="margin-top: 15px;">
+                            <button class="btn btn-secondary" id="copyCodeBtn">
+                                <i class="fas fa-copy"></i> Copy Code
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="view-shared">
+                        <h3>View Shared Progress</h3>
+                        <p>Enter a share code to view someone else's complete daily progress</p>
+                        
+                        <div class="share-section">
+                            <div class="form-group">
+                                <label for="viewCodeInput">Share Code</label>
+                                <input type="text" id="viewCodeInput" class="form-control" placeholder="Enter share code">
+                            </div>
+                            <button class="btn" id="viewCodeBtn">View Progress</button>
+                        </div>
+                        
+                        <div class="shared-activities" id="sharedActivities">
+                            <!-- Shared activities will appear here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Notification -->
+    <div class="notification" id="notification">
+        <i class="fas fa-check-circle"></i>
+        <span id="notificationText">Operation completed successfully!</span>
+    </div>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyC4wGDrMTFk5h6uP6GP9c0Yq6T0Xv8J8dM",
+            authDomain: "productivity-tracker-demo.firebaseapp.com",
+            projectId: "productivity-tracker-demo",
+            storageBucket: "productivity-tracker-demo.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdef123456"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // DOM Elements
+        const loginContainer = document.getElementById('loginContainer');
+        const appContainer = document.getElementById('appContainer');
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
+        const loginBtn = document.getElementById('loginBtn');
+        const loginBtnText = document.getElementById('loginBtnText');
+        const registerBtn = document.getElementById('registerBtn');
+        const registerBtnText = document.getElementById('registerBtnText');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const tabs = document.querySelectorAll('.tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+        const timeSlotsContainer = document.getElementById('timeSlots');
+        const saveActivitiesBtn = document.getElementById('saveActivities');
+        const generateCodeBtn = document.getElementById('generateCodeBtn');
+        const copyCodeBtn = document.getElementById('copyCodeBtn');
+        const shareCodeInput = document.getElementById('shareCodeInput');
+        const codeInfo = document.getElementById('codeInfo');
+        const viewCodeBtn = document.getElementById('viewCodeBtn');
+        const viewCodeInput = document.getElementById('viewCodeInput');
+        const sharedActivitiesContainer = document.getElementById('sharedActivities');
+        const notification = document.getElementById('notification');
+        const notificationText = document.getElementById('notificationText');
+        const userAvatar = document.getElementById('userAvatar');
+        const userName = document.getElementById('userName');
+        const userEmail = document.getElementById('userEmail');
+        
+        // New elements for enhanced features
+        const todoInput = document.getElementById('todoInput');
+        const addTodoBtn = document.getElementById('addTodoBtn');
+        const todoList = document.getElementById('todoList');
+        const stopwatchDisplay = document.getElementById('stopwatchDisplay');
+        const startStopwatchBtn = document.getElementById('startStopwatch');
+        const stopStopwatchBtn = document.getElementById('stopStopwatch');
+        const resetStopwatchBtn = document.getElementById('resetStopwatch');
+        const subjectSelect = document.getElementById('subjectSelect');
+        const pomodoroDisplay = document.getElementById('pomodoroDisplay');
+        const startPomodoroBtn = document.getElementById('startPomodoro');
+        const pausePomodoroBtn = document.getElementById('pausePomodoro');
+        const resetPomodoroBtn = document.getElementById('resetPomodoro');
+        const pomodoroStatus = document.getElementById('pomodoroStatus');
+        const subjectInput = document.getElementById('subjectInput');
+        const addSubjectBtn = document.getElementById('addSubjectBtn');
+        const subjectList = document.getElementById('subjectList');
+        const totalStudyHours = document.getElementById('totalStudyHours');
+        const tasksCompleted = document.getElementById('tasksCompleted');
+        const todayFocus = document.getElementById('todayFocus');
+        const productivityScore = document.getElementById('productivityScore');
+        
+        // History elements
+        const historyDate = document.getElementById('historyDate');
+        const loadHistoryBtn = document.getElementById('loadHistoryBtn');
+        const prevDayBtn = document.getElementById('prevDayBtn');
+        const nextDayBtn = document.getElementById('nextDayBtn');
+        const historyContent = document.getElementById('historyContent');
+
+        // Time slots for the day (3-hour brackets)
+        const timeSlots = [
+            { id: 'slot1', label: '12AM - 3AM', placeholder: 'What did you do during this time?' },
+            { id: 'slot2', label: '3AM - 6AM', placeholder: 'What did you do during this time?' },
+            { id: 'slot3', label: '6AM - 9AM', placeholder: 'What did you do during this time?' },
+            { id: 'slot4', label: '9AM - 12PM', placeholder: 'What did you do during this time?' },
+            { id: 'slot5', label: '12PM - 3PM', placeholder: 'What did you do during this time?' },
+            { id: 'slot6', label: '3PM - 6PM', placeholder: 'What did you do during this time?' },
+            { id: 'slot7', label: '6PM - 9PM', placeholder: 'What did you do during this time?' },
+            { id: 'slot8', label: '9PM - 12AM', placeholder: 'What did you do during this time?' }
+        ];
+
+        // App state
+        let stopwatchInterval;
+        let stopwatchRunning = false;
+        let stopwatchTime = 0;
+        let currentSubject = '';
+        
+        let pomodoroInterval;
+        let pomodoroRunning = false;
+        let pomodoroTime = 25 * 60; // 25 minutes in seconds
+        let pomodoroMode = 'work'; // 'work' or 'break'
+        
+        let todos = [];
+        let subjects = {};
+        let studySessions = [];
+        
+        // Share code management
+        let currentShareCode = '';
+        let shareCodeDate = '';
+
+        // Current date for history
+        let currentHistoryDate = new Date().toISOString().split('T')[0];
+
+        // Generate time slot inputs
+        function generateTimeSlots() {
+            timeSlotsContainer.innerHTML = '';
+            timeSlots.forEach(slot => {
+                const slotElement = document.createElement('div');
+                slotElement.className = 'time-slot';
+                slotElement.innerHTML = `
+                    <div class="time-slot-header">
+                        <span class="time-label">${slot.label}</span>
+                    </div>
+                    <textarea class="activity-input" id="${slot.id}" placeholder="${slot.placeholder}" rows="3"></textarea>
+                `;
+                timeSlotsContainer.appendChild(slotElement);
+            });
+        }
+
+        // Show notification
+        function showNotification(message, isSuccess = true) {
+            notificationText.textContent = message;
+            notification.className = `notification ${isSuccess ? 'success' : 'error'} show`;
+            notification.querySelector('i').className = isSuccess ? 'fas fa-check-circle' : 'fas fa-exclamation-circle';
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Format time for display
+        function formatTime(seconds) {
+            const hrs = Math.floor(seconds / 3600);
+            const mins = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            
+            return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // Format minutes for display
+        function formatMinutes(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // Update dashboard statistics
+        function updateDashboard() {
+            // Calculate total study hours
+            const totalSeconds = studySessions.reduce((total, session) => total + session.duration, 0);
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            totalStudyHours.textContent = `${hours}h ${minutes}m`;
+            
+            // Calculate completed tasks
+            const completedCount = todos.filter(todo => todo.completed).length;
+            tasksCompleted.textContent = completedCount;
+            
+            // Calculate today's focus time
+            const today = new Date().toISOString().split('T')[0];
+            const todaySessions = studySessions.filter(session => session.date === today);
+            const todaySeconds = todaySessions.reduce((total, session) => total + session.duration, 0);
+            const todayHours = Math.floor(todaySeconds / 3600);
+            const todayMinutes = Math.floor((todaySeconds % 3600) / 60);
+            todayFocus.textContent = `${todayHours}h ${todayMinutes}m`;
+            
+            // Calculate productivity score (simplified)
+            const totalTasks = todos.length;
+            const score = totalTasks > 0 ? Math.round((completedCount / totalTasks) * 100) : 0;
+            productivityScore.textContent = `${score}%`;
+        }
+
+        // Generate a consistent daily share code
+        function generateDailyShareCode(userId) {
+            const today = new Date().toISOString().split('T')[0];
+            
+            // Create a consistent code based on user ID and date
+            const baseString = userId + today;
+            let hash = 0;
+            
+            for (let i = 0; i < baseString.length; i++) {
+                const char = baseString.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash; // Convert to 32-bit integer
+            }
+            
+            // Convert to a 6-character code
+            const code = Math.abs(hash).toString(36).substring(0, 6).toUpperCase();
+            return code;
+        }
+
+        // Get or create today's share code
+        async function getOrCreateShareCode(user) {
+            const today = new Date().toISOString().split('T')[0];
+            
+            // Check if we already have a code for today
+            if (currentShareCode && shareCodeDate === today) {
+                return currentShareCode;
+            }
+            
+            // Generate a consistent code for today
+            const code = generateDailyShareCode(user.uid);
+            
+            // Store the share code in Firebase with today's date
+            await db.collection('shareCodes').doc(code).set({
+                userId: user.uid,
+                date: today,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            
+            // Update local state
+            currentShareCode = code;
+            shareCodeDate = today;
+            
+            return code;
+        }
+
+        // Update share code display
+        function updateShareCodeDisplay() {
+            const today = new Date().toISOString().split('T')[0];
+            
+            if (currentShareCode && shareCodeDate === today) {
+                shareCodeInput.value = currentShareCode;
+                codeInfo.innerHTML = `<i class="fas fa-info-circle"></i> This code is valid for today (${new Date().toLocaleDateString()})`;
+            } else {
+                shareCodeInput.value = '';
+                codeInfo.innerHTML = `<i class="fas fa-sync-alt"></i> Click "Get Today's Code" to generate your daily share code`;
+            }
+        }
+
+        // Load history for a specific date
+        async function loadHistory(date) {
+            const user = auth.currentUser;
+            if (!user) return;
+            
+            try {
+                // Load activities
+                const activitiesDoc = await db.collection('activities').doc(user.uid).collection('days').doc(date).get();
+                
+                // Load todos
+                const todosDoc = await db.collection('todos').doc(user.uid).collection('days').doc(date).get();
+                
+                // Load study sessions
+                const studySessionsSnapshot = await db.collection('studySessions').doc(user.uid)
+                    .collection('sessions')
+                    .where('date', '==', date)
+                    .get();
+                
+                // Render history
+                renderHistory(date, activitiesDoc, todosDoc, studySessionsSnapshot);
+            } catch (error) {
+                console.error('Error loading history:', error);
+                showNotification('Error loading history data', false);
+            }
+        }
+
+        // Render history content
+        function renderHistory(date, activitiesDoc, todosDoc, studySessionsSnapshot) {
+            let html = `<div class="history-day">
+                <div class="day-header">${new Date(date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>`;
+            
+            // Activities
+            if (activitiesDoc.exists) {
+                const activities = activitiesDoc.data().activities;
+                html += `<h3 style="margin-top: 20px; color: var(--primary);">Daily Activities</h3>`;
+                
+                timeSlots.forEach(slot => {
+                    if (activities[slot.id]) {
+                        html += `
+                            <div class="time-slot" style="margin-bottom: 15px;">
+                                <div class="time-slot-header">
+                                    <span class="time-label">${slot.label}</span>
+                                </div>
+                                <p>${activities[slot.id]}</p>
+                            </div>
+                        `;
+                    }
+                });
+            } else {
+                html += `<p>No activities recorded for this day.</p>`;
+            }
+            
+            // To-do list
+            if (todosDoc.exists) {
+                const dayTodos = todosDoc.data().todos || [];
+                const completedCount = dayTodos.filter(todo => todo.completed).length;
+                
+                html += `<h3 style="margin-top: 20px; color: var(--primary);">To-Do List</h3>`;
+                html += `<div class="history-stat" style="margin-bottom: 15px;">
+                    <h4>Completion Rate</h4>
+                    <div class="value">${dayTodos.length > 0 ? Math.round((completedCount / dayTodos.length) * 100) : 0}%</div>
+                </div>`;
+                
+                if (dayTodos.length > 0) {
+                    dayTodos.forEach(todo => {
+                        html += `
+                            <div class="todo-item ${todo.completed ? 'completed' : ''}" style="margin-bottom: 10px;">
+                                <input type="checkbox" ${todo.completed ? 'checked' : ''} disabled>
+                                <span class="todo-text">${todo.text}</span>
+                            </div>
+                        `;
+                    });
+                } else {
+                    html += `<p>No tasks for this day.</p>`;
+                }
+            }
+            
+            // Study sessions
+            if (!studySessionsSnapshot.empty) {
+                html += `<h3 style="margin-top: 20px; color: var(--primary);">Study Sessions</h3>`;
+                
+                const daySubjects = {};
+                let totalStudyTime = 0;
+                
+                studySessionsSnapshot.forEach(doc => {
+                    const session = doc.data();
+                    if (!daySubjects[session.subject]) {
+                        daySubjects[session.subject] = 0;
+                    }
+                    daySubjects[session.subject] += session.duration;
+                    totalStudyTime += session.duration;
+                });
+                
+                const hours = Math.floor(totalStudyTime / 3600);
+                const minutes = Math.floor((totalStudyTime % 3600) / 60);
+                
+                html += `<div class="history-stat" style="margin-bottom: 15px;">
+                    <h4>Total Study Time</h4>
+                    <div class="value">${hours}h ${minutes}m</div>
+                </div>`;
+                
+                html += `<div class="subject-list">`;
+                Object.entries(daySubjects).forEach(([subject, seconds]) => {
+                    const subjectHours = Math.floor(seconds / 3600);
+                    const subjectMinutes = Math.floor((seconds % 3600) / 60);
+                    
+                    html += `
+                        <div class="subject-card">
+                            <h3>${subject}</h3>
+                            <div class="time">${subjectHours}h ${subjectMinutes}m</div>
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+            }
+            
+            html += `</div>`;
+            historyContent.innerHTML = html;
+        }
+
+        // Stopwatch functions
+        function startStopwatch() {
+            if (!stopwatchRunning) {
+                if (!subjectSelect.value) {
+                    showNotification('Please select a subject first', false);
+                    return;
+                }
+                
+                currentSubject = subjectSelect.value;
+                stopwatchRunning = true;
+                stopwatchInterval = setInterval(() => {
+                    stopwatchTime++;
+                    stopwatchDisplay.textContent = formatTime(stopwatchTime);
+                }, 1000);
+                
+                startStopwatchBtn.textContent = 'Pause';
+                startStopwatchBtn.classList.remove('btn-success');
+                startStopwatchBtn.classList.add('btn-warning');
+            } else {
+                // Pause stopwatch
+                stopwatchRunning = false;
+                clearInterval(stopwatchInterval);
+                startStopwatchBtn.textContent = 'Resume';
+                startStopwatchBtn.classList.remove('btn-warning');
+                startStopwatchBtn.classList.add('btn-success');
+            }
+        }
+
+        function stopStopwatch() {
+            if (stopwatchRunning) {
+                stopwatchRunning = false;
+                clearInterval(stopwatchInterval);
+                
+                // Save the study session
+                const session = {
+                    subject: currentSubject,
+                    duration: stopwatchTime,
+                    date: new Date().toISOString().split('T')[0],
+                    timestamp: new Date()
+                };
+                
+                studySessions.push(session);
+                
+                // Update subject time
+                if (!subjects[currentSubject]) {
+                    subjects[currentSubject] = 0;
+                }
+                subjects[currentSubject] += stopwatchTime;
+                
+                // Save to Firebase
+                const user = auth.currentUser;
+                if (user) {
+                    db.collection('studySessions').doc(user.uid).collection('sessions').add(session)
+                        .then(() => {
+                            showNotification(`Study session saved: ${currentSubject} for ${formatTime(stopwatchTime)}`);
+                        })
+                        .catch(error => {
+                            showNotification('Error saving study session: ' + error.message, false);
+                        });
+                    
+                    // Update subjects
+                    db.collection('subjects').doc(user.uid).set({
+                        subjects: subjects
+                    }, { merge: true });
+                }
+                
+                // Reset stopwatch
+                stopwatchTime = 0;
+                stopwatchDisplay.textContent = formatTime(0);
+                startStopwatchBtn.textContent = 'Start';
+                startStopwatchBtn.classList.remove('btn-warning');
+                startStopwatchBtn.classList.add('btn-success');
+                
+                // Update dashboard and subject list
+                updateDashboard();
+                renderSubjectList();
+            }
+        }
+
+        function resetStopwatch() {
+            stopwatchRunning = false;
+            clearInterval(stopwatchInterval);
+            stopwatchTime = 0;
+            stopwatchDisplay.textContent = formatTime(0);
+            startStopwatchBtn.textContent = 'Start';
+            startStopwatchBtn.classList.remove('btn-warning');
+            startStopwatchBtn.classList.add('btn-success');
+        }
+
+        // Pomodoro timer functions
+        function startPomodoro() {
+            if (!pomodoroRunning) {
+                pomodoroRunning = true;
+                pomodoroInterval = setInterval(() => {
+                    pomodoroTime--;
+                    pomodoroDisplay.textContent = formatMinutes(pomodoroTime);
+                    
+                    if (pomodoroTime <= 0) {
+                        clearInterval(pomodoroInterval);
+                        pomodoroRunning = false;
+                        
+                        // Switch between work and break
+                        if (pomodoroMode === 'work') {
+                            pomodoroMode = 'break';
+                            pomodoroTime = 5 * 60; // 5-minute break
+                            pomodoroStatus.textContent = 'Break time! Take a rest.';
+                            showNotification('Pomodoro session complete! Time for a break.');
+                        } else {
+                            pomodoroMode = 'work';
+                            pomodoroTime = 25 * 60; // 25-minute work session
+                            pomodoroStatus.textContent = 'Back to work! Focus time.';
+                            showNotification('Break over! Time to focus again.');
+                        }
+                        
+                        pomodoroDisplay.textContent = formatMinutes(pomodoroTime);
+                        startPomodoroBtn.textContent = 'Start';
+                    }
+                }, 1000);
+                
+                startPomodoroBtn.textContent = 'Running';
+                pomodoroStatus.textContent = pomodoroMode === 'work' ? 'Focus on your task!' : 'Enjoy your break!';
+            } else {
+                // Pause pomodoro
+                pomodoroRunning = false;
+                clearInterval(pomodoroInterval);
+                startPomodoroBtn.textContent = 'Resume';
+                pomodoroStatus.textContent = 'Paused';
+            }
+        }
+
+        function pausePomodoro() {
+            pomodoroRunning = false;
+            clearInterval(pomodoroInterval);
+            startPomodoroBtn.textContent = 'Resume';
+            pomodoroStatus.textContent = 'Paused';
+        }
+
+        function resetPomodoro() {
+            pomodoroRunning = false;
+            clearInterval(pomodoroInterval);
+            pomodoroMode = 'work';
+            pomodoroTime = 25 * 60;
+            pomodoroDisplay.textContent = formatMinutes(pomodoroTime);
+            startPomodoroBtn.textContent = 'Start';
+            pomodoroStatus.textContent = 'Ready to focus!';
+        }
+
+        // To-do list functions
+        function addTodo() {
+            const text = todoInput.value.trim();
+            if (text === '') return;
+            
+            const todo = {
+                id: Date.now(),
+                text: text,
+                completed: false
+            };
+            
+            todos.push(todo);
+            renderTodoList();
+            todoInput.value = '';
+            
+            // Save to Firebase
+            const user = auth.currentUser;
+            if (user) {
+                const today = new Date().toISOString().split('T')[0];
+                db.collection('todos').doc(user.uid).collection('days').doc(today).set({
+                    todos: todos,
+                    date: today,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+            }
+            
+            updateDashboard();
+        }
+
+        function toggleTodo(id) {
+            const todo = todos.find(t => t.id === id);
+            if (todo) {
+                todo.completed = !todo.completed;
+                renderTodoList();
+                
+                // Save to Firebase
+                const user = auth.currentUser;
+                if (user) {
+                    const today = new Date().toISOString().split('T')[0];
+                    db.collection('todos').doc(user.uid).collection('days').doc(today).set({
+                        todos: todos,
+                        date: today,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true });
+                }
+                
+                updateDashboard();
+            }
+        }
+
+        function deleteTodo(id) {
+            todos = todos.filter(t => t.id !== id);
+            renderTodoList();
+            
+            // Save to Firebase
+            const user = auth.currentUser;
+            if (user) {
+                const today = new Date().toISOString().split('T')[0];
+                db.collection('todos').doc(user.uid).collection('days').doc(today).set({
+                    todos: todos,
+                    date: today,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+            }
+            
+            updateDashboard();
+        }
+
+        function renderTodoList() {
+            todoList.innerHTML = '';
+            
+            if (todos.length === 0) {
+                todoList.innerHTML = '<p style="text-align: center; color: var(--gray);">No tasks yet. Add one above!</p>';
+                return;
+            }
+            
+            todos.forEach(todo => {
+                const li = document.createElement('li');
+                li.className = `todo-item ${todo.completed ? 'completed' : ''}`;
+                li.innerHTML = `
+                    <input type="checkbox" ${todo.completed ? 'checked' : ''} onchange="toggleTodo(${todo.id})">
+                    <span class="todo-text">${todo.text}</span>
+                    <div class="todo-actions">
+                        <button class="btn btn-danger" onclick="deleteTodo(${todo.id})" style="padding: 5px 10px; font-size: 0.8rem;">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+                todoList.appendChild(li);
+            });
+        }
+
+        // Subject functions
+        function addSubject() {
+            const name = subjectInput.value.trim();
+            if (name === '') return;
+            
+            if (!subjects[name]) {
+                subjects[name] = 0;
+                
+                // Add to subject select dropdown
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                subjectSelect.appendChild(option);
+                
+                renderSubjectList();
+                subjectInput.value = '';
+                
+                // Save to Firebase
+                const user = auth.currentUser;
+                if (user) {
+                    db.collection('subjects').doc(user.uid).set({
+                        subjects: subjects
+                    }, { merge: true });
+                }
+            } else {
+                showNotification('Subject already exists!', false);
+            }
+        }
+
+        function renderSubjectList() {
+            subjectList.innerHTML = '';
+            
+            const subjectEntries = Object.entries(subjects);
+            if (subjectEntries.length === 0) {
+                subjectList.innerHTML = '<p style="text-align: center; color: var(--gray); grid-column: 1 / -1;">No subjects yet. Add one above or start a study session!</p>';
+                return;
+            }
+            
+            subjectEntries.forEach(([name, seconds]) => {
+                const hours = Math.floor(seconds / 3600);
+                const minutes = Math.floor((seconds % 3600) / 60);
+                
+                const card = document.createElement('div');
+                card.className = 'subject-card';
+                card.innerHTML = `
+                    <h3>${name}</h3>
+                    <div class="time">${hours}h ${minutes}m</div>
+                `;
+                subjectList.appendChild(card);
+            });
+        }
+
+        // Tab switching
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabId = tab.getAttribute('data-tab');
+                
+                tabs.forEach(t => t.classList.remove('active'));
+                tabContents.forEach(content => content.classList.remove('active'));
+                
+                tab.classList.add('active');
+                document.getElementById(`${tabId}Tab`).classList.add('active');
+                
+                // If history tab is selected, set default date to today
+                if (tabId === 'history') {
+                    historyDate.value = currentHistoryDate;
+                    loadHistory(currentHistoryDate);
+                }
+            });
+        });
+
+        // Login
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            // Show loading state
+            loginBtn.disabled = true;
+            loginBtnText.innerHTML = '<div class="loading"></div> Signing In...';
+            
+            try {
+                const userCredential = await auth.signInWithEmailAndPassword(email, password);
+                showNotification('Successfully logged in!');
+            } catch (error) {
+                console.error('Login error:', error);
+                showNotification(error.message, false);
+            } finally {
+                // Reset button state
+                loginBtn.disabled = false;
+                loginBtnText.textContent = 'Sign In';
+            }
+        });
+
+        // Register
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('registerName').value;
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            
+            if (password.length < 6) {
+                showNotification('Password must be at least 6 characters', false);
+                return;
+            }
+            
+            // Show loading state
+            registerBtn.disabled = true;
+            registerBtnText.innerHTML = '<div class="loading"></div> Creating Account...';
+            
+            try {
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                
+                // Update user profile
+                await userCredential.user.updateProfile({
+                    displayName: name
+                });
+                
+                showNotification('Account created successfully!');
+            } catch (error) {
+                console.error('Registration error:', error);
+                showNotification(error.message, false);
+            } finally {
+                // Reset button state
+                registerBtn.disabled = false;
+                registerBtnText.textContent = 'Create Account';
+            }
+        });
+
+        // Logout
+        logoutBtn.addEventListener('click', () => {
+            auth.signOut();
+        });
+
+        // Save activities
+        saveActivitiesBtn.addEventListener('click', () => {
+            const user = auth.currentUser;
+            if (!user) return;
+            
+            const activities = {};
+            timeSlots.forEach(slot => {
+                activities[slot.id] = document.getElementById(slot.id).value;
+            });
+            
+            const today = new Date().toISOString().split('T')[0];
+            
+            db.collection('activities').doc(user.uid).collection('days').doc(today).set({
+                date: today,
+                activities: activities,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            })
+            .then(() => {
+                showNotification('Activities saved successfully!');
+            })
+            .catch(error => {
+                showNotification('Error saving activities: ' + error.message, false);
+            });
+        });
+
+        // Generate or get today's share code
+        generateCodeBtn.addEventListener('click', () => {
+            const user = auth.currentUser;
+            if (!user) return;
+            
+            getOrCreateShareCode(user)
+                .then(code => {
+                    updateShareCodeDisplay();
+                    showNotification('Today\'s share code generated!');
+                })
+                .catch(error => {
+                    showNotification('Error generating code: ' + error.message, false);
+                });
+        });
+
+        // Copy share code
+        copyCodeBtn.addEventListener('click', () => {
+            if (!shareCodeInput.value) {
+                showNotification('Please generate a code first', false);
+                return;
+            }
+            
+            shareCodeInput.select();
+            document.execCommand('copy');
+            showNotification('Code copied to clipboard!');
+        });
+
+        // View shared activities
+        viewCodeBtn.addEventListener('click', () => {
+            const code = viewCodeInput.value.trim();
+            if (!code) {
+                showNotification('Please enter a share code', false);
+                return;
+            }
+            
+            // Look up the share code
+            db.collection('shareCodes').doc(code).get()
+            .then(doc => {
+                if (!doc.exists) {
+                    showNotification('Invalid share code', false);
+                    return;
+                }
+                
+                const shareData = doc.data();
+                const userId = shareData.userId;
+                const shareDate = shareData.date;
+                
+                // Get all data for the shared date
+                Promise.all([
+                    db.collection('activities').doc(userId).collection('days').doc(shareDate).get(),
+                    db.collection('todos').doc(userId).collection('days').doc(shareDate).get(),
+                    db.collection('studySessions').doc(userId).collection('sessions').where('date', '==', shareDate).get()
+                ])
+                .then(([activitiesDoc, todosDoc, studySessionsSnapshot]) => {
+                    sharedActivitiesContainer.innerHTML = '';
+                    
+                    let html = `<div class="shared-day">
+                        <div class="day-header">Shared Progress for ${new Date(shareDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>`;
+                    
+                    // Activities
+                    if (activitiesDoc.exists) {
+                        const activities = activitiesDoc.data().activities;
+                        html += `<h3 style="margin-top: 20px; color: var(--primary);">Daily Activities</h3>`;
+                        
+                        timeSlots.forEach(slot => {
+                            if (activities[slot.id]) {
+                                html += `
+                                    <div class="time-slot" style="margin-bottom: 15px;">
+                                        <div class="time-slot-header">
+                                            <span class="time-label">${slot.label}</span>
+                                        </div>
+                                        <p>${activities[slot.id]}</p>
+                                    </div>
+                                `;
+                            }
+                        });
+                    }
+                    
+                    // To-do list
+                    if (todosDoc.exists) {
+                        const dayTodos = todosDoc.data().todos || [];
+                        const completedCount = dayTodos.filter(todo => todo.completed).length;
+                        
+                        html += `<h3 style="margin-top: 20px; color: var(--primary);">To-Do List</h3>`;
+                        html += `<div class="history-stat" style="margin-bottom: 15px;">
+                            <h4>Completion Rate</h4>
+                            <div class="value">${dayTodos.length > 0 ? Math.round((completedCount / dayTodos.length) * 100) : 0}%</div>
+                        </div>`;
+                        
+                        if (dayTodos.length > 0) {
+                            dayTodos.forEach(todo => {
+                                html += `
+                                    <div class="todo-item ${todo.completed ? 'completed' : ''}" style="margin-bottom: 10px;">
+                                        <input type="checkbox" ${todo.completed ? 'checked' : ''} disabled>
+                                        <span class="todo-text">${todo.text}</span>
+                                    </div>
+                                `;
+                            });
+                        }
+                    }
+                    
+                    // Study sessions
+                    if (!studySessionsSnapshot.empty) {
+                        html += `<h3 style="margin-top: 20px; color: var(--primary);">Study Sessions</h3>`;
+                        
+                        const daySubjects = {};
+                        let totalStudyTime = 0;
+                        
+                        studySessionsSnapshot.forEach(doc => {
+                            const session = doc.data();
+                            if (!daySubjects[session.subject]) {
+                                daySubjects[session.subject] = 0;
+                            }
+                            daySubjects[session.subject] += session.duration;
+                            totalStudyTime += session.duration;
+                        });
+                        
+                        const hours = Math.floor(totalStudyTime / 3600);
+                        const minutes = Math.floor((totalStudyTime % 3600) / 60);
+                        
+                        html += `<div class="history-stat" style="margin-bottom: 15px;">
+                            <h4>Total Study Time</h4>
+                            <div class="value">${hours}h ${minutes}m</div>
+                        </div>`;
+                        
+                        html += `<div class="subject-list">`;
+                        Object.entries(daySubjects).forEach(([subject, seconds]) => {
+                            const subjectHours = Math.floor(seconds / 3600);
+                            const subjectMinutes = Math.floor((seconds % 3600) / 60);
+                            
+                            html += `
+                                <div class="subject-card">
+                                    <h3>${subject}</h3>
+                                    <div class="time">${subjectHours}h ${subjectMinutes}m</div>
+                                </div>
+                            `;
+                        });
+                        html += `</div>`;
+                    }
+                    
+                    html += `</div>`;
+                    sharedActivitiesContainer.innerHTML = html;
+                    showNotification('Shared progress loaded!');
+                });
+            })
+            .catch(error => {
+                showNotification('Error loading shared progress: ' + error.message, false);
+            });
+        });
+
+        // History functions
+        loadHistoryBtn.addEventListener('click', () => {
+            const date = historyDate.value;
+            if (!date) {
+                showNotification('Please select a date', false);
+                return;
+            }
+            
+            currentHistoryDate = date;
+            loadHistory(date);
+        });
+
+        prevDayBtn.addEventListener('click', () => {
+            const date = new Date(currentHistoryDate);
+            date.setDate(date.getDate() - 1);
+            currentHistoryDate = date.toISOString().split('T')[0];
+            historyDate.value = currentHistoryDate;
+            loadHistory(currentHistoryDate);
+        });
+
+        nextDayBtn.addEventListener('click', () => {
+            const date = new Date(currentHistoryDate);
+            date.setDate(date.getDate() + 1);
+            
+            // Don't allow future dates
+            const today = new Date().toISOString().split('T')[0];
+            if (date.toISOString().split('T')[0] > today) {
+                showNotification('Cannot view future dates', false);
+                return;
+            }
+            
+            currentHistoryDate = date.toISOString().split('T')[0];
+            historyDate.value = currentHistoryDate;
+            loadHistory(currentHistoryDate);
+        });
+
+        // Auth state observer
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                // User is signed in
+                loginContainer.style.display = 'none';
+                appContainer.style.display = 'block';
+                
+                // Update user info
+                userAvatar.textContent = user.displayName ? user.displayName.charAt(0).toUpperCase() : 'U';
+                userName.textContent = user.displayName || 'User';
+                userEmail.textContent = user.email;
+                
+                // Load today's activities if they exist
+                const today = new Date().toISOString().split('T')[0];
+                db.collection('activities').doc(user.uid).collection('days').doc(today).get()
+                .then(doc => {
+                    if (doc.exists) {
+                        const activities = doc.data().activities;
+                        timeSlots.forEach(slot => {
+                            if (activities[slot.id]) {
+                                document.getElementById(slot.id).value = activities[slot.id];
+                            }
+                        });
+                    }
+                });
+                
+                // Load today's to-do list
+                db.collection('todos').doc(user.uid).collection('days').doc(today).get()
+                .then(doc => {
+                    if (doc.exists && doc.data().todos) {
+                        todos = doc.data().todos;
+                        renderTodoList();
+                        updateDashboard();
+                    }
+                });
+                
+                // Load subjects
+                db.collection('subjects').doc(user.uid).get()
+                .then(doc => {
+                    if (doc.exists && doc.data().subjects) {
+                        subjects = doc.data().subjects;
+                        renderSubjectList();
+                        
+                        // Populate subject select dropdown
+                        Object.keys(subjects).forEach(subject => {
+                            const option = document.createElement('option');
+                            option.value = subject;
+                            option.textContent = subject;
+                            subjectSelect.appendChild(option);
+                        });
+                    }
+                });
+                
+                // Load study sessions
+                db.collection('studySessions').doc(user.uid).collection('sessions')
+                    .orderBy('timestamp', 'desc')
+                    .limit(100)
+                    .get()
+                .then(snapshot => {
+                    studySessions = [];
+                    snapshot.forEach(doc => {
+                        studySessions.push(doc.data());
+                    });
+                    updateDashboard();
+                });
+                
+                // Check if user has a share code for today
+                const today = new Date().toISOString().split('T')[0];
+                db.collection('shareCodes')
+                    .where('userId', '==', user.uid)
+                    .where('date', '==', today)
+                    .get()
+                .then(snapshot => {
+                    if (!snapshot.empty) {
+                        snapshot.forEach(doc => {
+                            currentShareCode = doc.id;
+                            shareCodeDate = doc.data().date;
+                        });
+                    }
+                    updateShareCodeDisplay();
+                });
+                
+                // Set history date to today
+                historyDate.value = today;
+                currentHistoryDate = today;
+                
+            } else {
+                // User is signed out
+                loginContainer.style.display = 'block';
+                appContainer.style.display = 'none';
+                
+                // Reset forms
+                loginForm.reset();
+                registerForm.reset();
+                
+                // Reset app state
+                todos = [];
+                subjects = {};
+                studySessions = [];
+                stopwatchTime = 0;
+                pomodoroTime = 25 * 60;
+                pomodoroMode = 'work';
+                currentShareCode = '';
+                shareCodeDate = '';
+            }
+        });
+
+        // Event listeners for new features
+        addTodoBtn.addEventListener('click', addTodo);
+        todoInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addTodo();
+        });
+        
+        startStopwatchBtn.addEventListener('click', startStopwatch);
+        stopStopwatchBtn.addEventListener('click', stopStopwatch);
+        resetStopwatchBtn.addEventListener('click', resetStopwatch);
+        
+        startPomodoroBtn.addEventListener('click', startPomodoro);
+        pausePomodoroBtn.addEventListener('click', pausePomodoro);
+        resetPomodoroBtn.addEventListener('click', resetPomodoro);
+        
+        addSubjectBtn.addEventListener('click', addSubject);
+        subjectInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addSubject();
+        });
+
+        // Initialize the app
+        generateTimeSlots();
+        renderTodoList();
+        renderSubjectList();
+        updateDashboard();
+        updateShareCodeDisplay();
+
+        // Handle window resize for better mobile experience
+        window.addEventListener('resize', function() {
+            // Adjust layout if needed on resize
+            if (window.innerWidth < 576) {
+                // Mobile-specific adjustments if needed
+            }
+        });
+    </script>
+</body>
+</html>
